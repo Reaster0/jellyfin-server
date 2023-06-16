@@ -1,0 +1,145 @@
+version: '3'
+
+services:
+  jellyfin:
+    image: jellyfin/jellyfin
+    container_name: jellyfin
+    restart: unless-stopped
+      #network_mode: host
+    volumes:
+      - ./jellyfin/config:/config
+      - ./jellyfin/cache:/cache
+      - ./media:/media
+    environment:
+      - PGID=1000
+      - PUID=1000
+      - TZ=Europe/London
+    ports:
+      - 8096:8096
+      - 8920:8920
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+
+  # plex:
+  #   image: linuxserver/plex
+  #   container_name: plex
+  #   restart: always
+  #   network_mode: host
+  #   volumes:
+  #     - ./plex/config:/config
+  #     - ./media:/media
+  #   environment:
+  #     - PGID=1000
+  #     - PUID=1000
+  #     - TZ=Europe/London
+  #     - VERSION=docker
+  #     - PLEX_CLAIM=claim-oAjsdx8aNn38_aJvrWsy
+  #     - HOSTNAME=ReasterPlex
+  #   ports:
+  #     - 32400:32400
+
+  jellyseer:
+    image: fallenbagel/jellyseerr
+    container_name: jellyseer
+    restart: always
+    environment:
+    # - LOG_LEVEL=debug
+    - TZ=Europe/London
+    ports:
+      - 5055:5055
+    volumes:
+      - ./jellyseer:/app/config
+    depends_on:
+      - jellyfin
+
+  radarr:
+    image: linuxserver/radarr:latest
+    container_name: radarr
+    restart: always
+    ports:
+      - "7878:7878"
+    environment:
+      - PGID=1000
+      - PUID=1000
+      - TZ=Europe/London
+    volumes:
+      - ./radarr:/config
+      - ./media:/library
+
+  sonarr:
+    image: linuxserver/sonarr:latest
+    container_name: sonarr
+    restart: always
+    ports:
+      - "8989:8989"
+    environment:
+      - PGID=1000
+      - PUID=1000
+      - TZ=Europe/London
+    volumes:
+      - ./sonarr:/config
+      - ./media:/library
+    
+  prowlarr:
+    image: linuxserver/prowlarr:develop
+    container_name: prowlarr
+    restart: always
+    ports:
+      - "9696:9696"
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PGID=1000
+      - PUID=1000
+      - TZ=Europe/London
+    volumes:
+      - ./prowlarr:/config
+      - watching:/downloads  # transmission watch directory
+  
+  transmission:
+    image: linuxserver/transmission:latest
+    container_name: transmission
+    restart: always
+    # ports:
+    #   - "9091:9091"
+    #   - "51413:51413"
+    #   - "51413:51413/udp"
+    environment:
+      - PGID=1000
+      - PUID=1000
+      - TZ=Europe/London
+      - USER=admin #optional
+      - PASS=admin #optional
+    volumes:
+      - ./transmission:/config
+      - ./media:/library
+      - watching:/watch
+    cap_add:
+      - NET_ADMIN
+    network_mode: service:protonwire
+    depends_on:
+      - protonwire
+  
+  protonwire:
+    image: qmcgaw/gluetun
+    container_name: protonwire
+    restart: always
+    ports:
+      - "9091:9091"
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - VPN_SERVICE_PROVIDER=protonvpn
+      - OPENVPN_USER=$PROTON_VPN_USER
+      - OPENVPN_PASSWORD=$PROTON_VPN_PASS
+      - SERVER_COUNTRIES=Netherlands
+      # - FREE_ONLY=yes
+      - KILL_SWITCH=on
+    
+volumes:
+  watching:
+    driver: local
