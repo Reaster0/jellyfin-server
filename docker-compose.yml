@@ -9,10 +9,11 @@ services:
     volumes:
       - ./jellyfin/config:/config
       - ./jellyfin/cache:/cache
-      - ./media:/media
+      - /media/reaster/big-chungus/media:/media
+    # user: "root:root"
     environment:
-      - PGID=1000
-      - PUID=1000
+      - PGID=0
+      - PUID=0
       - TZ=Europe/London
     ports:
       - 8096:8096
@@ -31,7 +32,7 @@ services:
   #   network_mode: host
   #   volumes:
   #     - ./plex/config:/config
-  #     - ./media:/media
+  #     - /media/reaster/big-chungus/media:/media
   #   environment:
   #     - PGID=1000
   #     - PUID=1000
@@ -63,12 +64,13 @@ services:
     ports:
       - "7878:7878"
     environment:
-      - PGID=1000
-      - PUID=1000
+      - PGID=0
+      - PUID=0
       - TZ=Europe/London
     volumes:
       - ./radarr:/config
-      - ./media:/library
+      - /media/reaster/big-chungus/media:/library
+    # user: "root:root"
 
   sonarr:
     image: linuxserver/sonarr:latest
@@ -77,12 +79,13 @@ services:
     ports:
       - "8989:8989"
     environment:
-      - PGID=1000
-      - PUID=1000
+      - PGID=0
+      - PUID=0
       - TZ=Europe/London
     volumes:
       - ./sonarr:/config
-      - ./media:/library
+      - /media/reaster/big-chungus/media:/library
+    # user: "root:root"
     
   prowlarr:
     image: linuxserver/prowlarr:develop
@@ -93,8 +96,8 @@ services:
     cap_add:
       - NET_ADMIN
     environment:
-      - PGID=1000
-      - PUID=1000
+      - PGID=0
+      - PUID=0
       - TZ=Europe/London
     volumes:
       - ./prowlarr:/config
@@ -109,15 +112,16 @@ services:
     #   - "51413:51413"
     #   - "51413:51413/udp"
     environment:
-      - PGID=1000
-      - PUID=1000
+      - PGID=0
+      - PUID=0
       - TZ=Europe/London
       - USER=admin #optional
       - PASS=admin #optional
     volumes:
       - ./transmission:/config
-      - ./media:/library
+      - /media/reaster/big-chungus/media:/library
       - watching:/watch
+    # user: "root:root"
     cap_add:
       - NET_ADMIN
     network_mode: service:protonwire
