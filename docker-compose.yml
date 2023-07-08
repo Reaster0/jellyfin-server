@@ -1,46 +1,39 @@
 version: '3'
 
 services:
+
+  nginx-proxy-manager:
+    container_name: 'nginx-proxy-manager'
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+    volumes:
+      - ./nginx-proxy-manager/data:/data
+      - ./nginx-proxy-manager/letsencrypt:/etc/letsencrypt
+
   jellyfin:
     image: jellyfin/jellyfin
     container_name: jellyfin
     restart: unless-stopped
-      #network_mode: host
     volumes:
       - ./jellyfin/config:/config
       - ./jellyfin/cache:/cache
-      - ./media:/media
+      - ../media:/media
     environment:
       - PGID=1000
       - PUID=1000
       - TZ=Europe/London
     ports:
       - 8096:8096
-      - 8920:8920
     runtime: nvidia
     deploy:
       resources:
         reservations:
           devices:
             - capabilities: [gpu]
-
-  # plex:
-  #   image: linuxserver/plex
-  #   container_name: plex
-  #   restart: always
-  #   network_mode: host
-  #   volumes:
-  #     - ./plex/config:/config
-  #     - /media/reaster/big-chungus/media:/media
-  #   environment:
-  #     - PGID=1000
-  #     - PUID=1000
-  #     - TZ=Europe/London
-  #     - VERSION=docker
-  #     - PLEX_CLAIM=claim-oAjsdx8aNn38_aJvrWsy
-  #     - HOSTNAME=ReasterPlex
-  #   ports:
-  #     - 32400:32400
 
   jellyseer:
     image: fallenbagel/jellyseerr
@@ -70,7 +63,7 @@ services:
       - TZ=Europe/London
     volumes:
       - ./radarr:/config
-      - ./media:/library
+      - ../media:/library
 
   sonarr:
     image: linuxserver/sonarr:latest
@@ -84,7 +77,7 @@ services:
       - TZ=Europe/London
     volumes:
       - ./sonarr:/config
-      - ./media:/library
+      - ../media:/library
     
   prowlarr:
     image: linuxserver/prowlarr:develop
@@ -106,10 +99,8 @@ services:
     image: linuxserver/transmission:latest
     container_name: transmission
     restart: always
-    # ports:
-    #   - "9091:9091"
-    #   - "51413:51413"
-    #   - "51413:51413/udp"
+      #ports:
+      #    - "9091:9091"
     environment:
       - PGID=1000
       - PUID=1000
@@ -118,7 +109,7 @@ services:
       - PASS=admin #optional
     volumes:
       - ./transmission:/config
-      - ./media:/library
+      - ../media:/library
       - watching:/watch
     cap_add:
       - NET_ADMIN
@@ -141,7 +132,7 @@ services:
       - SERVER_COUNTRIES=Netherlands
       # - FREE_ONLY=yes
       - KILL_SWITCH=on
-    
+  
 volumes:
   watching:
     driver: local

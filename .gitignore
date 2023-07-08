@@ -1,2 +1,11 @@
 .env
 ./media
+jellyfin
+jellyseer
+plex
+prowlarr
+radarr
+sonarr
+transmission
+traefik
+nginx-proxy-manager
