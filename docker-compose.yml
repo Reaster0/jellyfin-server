@@ -148,12 +148,17 @@ services:
       - "9091:9091"
     cap_add:
       - NET_ADMIN
+    volumes:
+      - ./wg0.conf:/gluetun/wireguard/wg0.conf:ro
     environment:
-      - VPN_SERVICE_PROVIDER=protonvpn
-      - OPENVPN_USER=$PROTON_VPN_USER
-      - OPENVPN_PASSWORD=$PROTON_VPN_PASS
-      - SERVER_COUNTRIES=Netherlands
+      # - VPN_SERVICE_PROVIDER=protonvpn
+      # - OPENVPN_USER=$PROTON_VPN_USER
+      # - OPENVPN_PASSWORD=$PROTON_VPN_PASS
+      # - SERVER_COUNTRIES=Netherlands
+      - VPN_SERVICE_PROVIDER=custom
+      - VPN_TYPE=wireguard
       - VPN_PORT_FORWARDING=on
+      - VPN_PORT_FORWARDING_PROVIDER=protonvpn
       # - FREE_ONLY=yes
       - KILL_SWITCH=on
   

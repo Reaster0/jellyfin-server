@@ -10,3 +10,4 @@ transmission
 traefik
 nginx-proxy-manager
 jackett
+wg0.conf
