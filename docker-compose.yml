@@ -15,12 +15,12 @@ services:
       - ./nginx-proxy-manager/letsencrypt:/etc/letsencrypt
 
   jellyfin:
-    image: jellyfin/jellyfin
+    image: jellyfin/jellyfin:unstable
     container_name: jellyfin
     restart: unless-stopped
     volumes:
       - ./jellyfin/config:/config
-        #- ./jellyfin/cache:/cache
+      # - ./jellyfin/cache:/cache
       - ../media:/media
     environment:
       - PGID=1000
