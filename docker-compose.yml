@@ -22,6 +22,7 @@ services:
       - ./jellyfin/config:/config
       # - ./jellyfin/cache:/cache
       - ../media:/media
+      - ./jellyfin/config.json:/jellyfin/jellyfin-web/config.json
     environment:
       - PGID=1000
       - PUID=1000
@@ -80,7 +81,7 @@ services:
       - ../media:/library
     
   prowlarr:
-    image: linuxserver/prowlarr:develop
+    image: linuxserver/prowlarr:latest
     container_name: prowlarr
     restart: always
     ports:
