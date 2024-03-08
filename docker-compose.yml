@@ -13,34 +13,11 @@ services:
     volumes:
       - ./nginx-proxy-manager/data:/data
       - ./nginx-proxy-manager/letsencrypt:/etc/letsencrypt
-
-  jellyfin-unstable:
-    image: jellyfin/jellyfin:unstable
-    container_name: jellyfin-unstable
-    restart: unless-stopped
-    volumes:
-      - ./jellyfin-unstable/config:/config
-      - ../media:/media
-      - ./jellyfin-unstable/config.json:/jellyfin/jellyfin-web/config.json
-    environment:
-      - PGID=1000
-      - PUID=1000
-      - TZ=Europe/London
-    ports:
-      - 8097:8096
-    runtime: nvidia
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities: [gpu]
-    labels:
-      - "com.centurylinklabs.watchtower.enable=false"
   
   jellyfin:
     image: jellyfin/jellyfin:latest
     container_name: jellyfin
-    restart: unless-stopped
+    restart: always
     volumes:
       - ./jellyfin/config:/config
       - ../media:/media
@@ -57,6 +34,13 @@ services:
         reservations:
           devices:
             - capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8096/web/index.html"]
+      interval: 30s
+      timeout: 10s
+      retries: 2
+      start_period: 60s
+
 
   jellyseer:
     image: fallenbagel/jellyseerr
@@ -134,6 +118,7 @@ services:
   
   flaresolverr:
     image: flaresolverr/flaresolverr:latest
+    # image: 21hsmw/flaresolverr:test
     container_name: flaresolverr
     restart: unless-stopped
     environment:
