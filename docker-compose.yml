@@ -19,21 +19,29 @@ services:
     container_name: jellyfin
     restart: always
     volumes:
-      - ./jellyfin/config:/config
+      #- ./jellyfin/config:/config
+      - ~/Documents/jellyfin/config:/config
       - ../media:/media
-      - ./jellyfin/config.json:/jellyfin/jellyfin-web/config.json
+      - ~/Documents/jellyfin/config.json:/jellyfin/jellyfin-web/config.json
     environment:
       - PGID=1000
       - PUID=1000
       - TZ=Europe/London
     ports:
       - 8096:8096
-    runtime: nvidia
+    # runtime: nvidia
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - capabilities: [gpu]
     deploy:
       resources:
         reservations:
           devices:
-            - capabilities: [gpu]
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8096/web/index.html"]
       interval: 30s
@@ -117,8 +125,8 @@ services:
       - watching:/downloads # transmission watch directory
   
   flaresolverr:
-    image: flaresolverr/flaresolverr:latest
-    # image: 21hsmw/flaresolverr:test
+    # image: flaresolverr/flaresolverr:latest
+    image: ghcr.io/flaresolverr/flaresolverr:pr-1282
     container_name: flaresolverr
     restart: unless-stopped
     environment:
@@ -169,8 +177,8 @@ services:
       - VPN_PORT_FORWARDING_PROVIDER=protonvpn
       # - FREE_ONLY=yes
       - KILL_SWITCH=on
-    labels:
-      - "com.centurylinklabs.watchtower.enable=false"
+    # labels:
+    #   - "com.centurylinklabs.watchtower.enable=false"
   
 volumes:
   watching:
