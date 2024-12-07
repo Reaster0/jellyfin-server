@@ -1,5 +1,3 @@
-version: '3'
-
 services:
 
   nginx-proxy-manager:
@@ -93,6 +91,20 @@ services:
     volumes:
       - ./sonarr:/config
       - ../media:/library
+
+  lidarr:
+    image: linuxserver/lidarr
+    container_name: lidarr
+    restart: always
+    ports:
+      - "8686:8686"
+    environment:
+      - PGID=1000
+      - PUID=1000
+      - TZ=Europe/London
+    volumes:
+      - ./lidarr:/config
+      - ../media:/library
     
   prowlarr:
     image: linuxserver/prowlarr:latest
@@ -126,20 +138,22 @@ services:
   
   flaresolverr:
     # image: flaresolverr/flaresolverr:latest
-    image: ghcr.io/flaresolverr/flaresolverr:pr-1282
+    # image: ghcr.io/flaresolverr/flaresolverr:pr-1282
+    image: alexfozor/flaresolverr:pr-1300-experimental
     container_name: flaresolverr
     restart: unless-stopped
     environment:
       - PGUID=1000
       - PUID=1000
       - TZ=Europe/London
+      - DRIVER=nodriver
 
   transmission:
     image: linuxserver/transmission:latest
     container_name: transmission
     restart: always
-      #ports:
-      #    - "9091:9091"
+    # ports:
+    #   - "9091:9091"
     environment:
       - PGID=1000
       - PUID=1000
@@ -155,30 +169,32 @@ services:
     network_mode: service:protonwire
     depends_on:
       - protonwire
-  
+
   protonwire:
-    image: qmcgaw/gluetun
     container_name: protonwire
-    restart: always
+    image: dperson/openvpn-client
+    cap_add:
+      - net_admin
+    environment:
+      FIREWALL: '1'
+      VPNPORT: '17000'
     ports:
       - "9091:9091"
-    cap_add:
-      - NET_ADMIN
+    privileged: true
+    restart: unless-stopped
+    security_opt:
+      - label:disable
     volumes:
-      - ./wg0.conf:/gluetun/wireguard/wg0.conf:ro
-    environment:
-      # - VPN_SERVICE_PROVIDER=protonvpn
-      # - OPENVPN_USER=$PROTON_VPN_USER
-      # - OPENVPN_PASSWORD=$PROTON_VPN_PASS
-      # - SERVER_COUNTRIES=Netherlands
-      - VPN_SERVICE_PROVIDER=custom
-      - VPN_TYPE=wireguard
-      - VPN_PORT_FORWARDING=on
-      - VPN_PORT_FORWARDING_PROVIDER=protonvpn
-      # - FREE_ONLY=yes
-      - KILL_SWITCH=on
-    # labels:
-    #   - "com.centurylinklabs.watchtower.enable=false"
+      - ./vpn/reaster-ovpn.ovpn:/vpn/vpn.conf:ro
+      - ./vpn/credentials.txt:/vpn/credentials.txt:ro
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 30
   
 volumes:
   watching:
