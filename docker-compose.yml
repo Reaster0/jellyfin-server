@@ -1,8 +1,10 @@
 services:
 
+  # our reverse proxy, default password is admin changeme
   nginx-proxy-manager:
     container_name: 'nginx-proxy-manager'
     image: 'jc21/nginx-proxy-manager:latest'
+    # image: 'lepresidente/nginx-proxy-manager' # forked image with recaptcha/crowdsec if you want some security
     restart: unless-stopped
     ports:
       - '80:80'
@@ -11,13 +13,12 @@ services:
     volumes:
       - ./nginx-proxy-manager/data:/data
       - ./nginx-proxy-manager/letsencrypt:/etc/letsencrypt
-  
+
   jellyfin:
     image: jellyfin/jellyfin:latest
     container_name: jellyfin
     restart: always
     volumes:
-      #- ./jellyfin/config:/config
       - ~/Documents/jellyfin/config:/config
       - ../media:/media
       - ~/Documents/jellyfin/config.json:/jellyfin/jellyfin-web/config.json
@@ -27,19 +28,15 @@ services:
       - TZ=Europe/London
     ports:
       - 8096:8096
-    # runtime: nvidia
-    # deploy:
+    # deploy: # support for nvidia gpu
     #   resources:
     #     reservations:
     #       devices:
-    #         - capabilities: [gpu]
-    deploy:
-      resources:
-        reservations:
-          devices:
-          - driver: nvidia
-            count: 1
-            capabilities: [gpu]
+    #       - driver: nvidia
+    #         count: 1
+    #         capabilities: [gpu]
+    devices: # support for amd/intel gpu
+      - /dev/dri/renderD128:/dev/dri/renderD128
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8096/web/index.html"]
       interval: 30s
@@ -47,8 +44,7 @@ services:
       retries: 2
       start_period: 60s
 
-
-  jellyseer:
+  jellyseer: # the service that let users request media (communicate with sonarr/radarr)
     image: fallenbagel/jellyseerr
     container_name: jellyseer
     restart: always
@@ -61,10 +57,27 @@ services:
       - 5055:5055
     volumes:
       - ./jellyseer:/app/config
+    # depends_on:
+    #   - jellyfin
+
+  jfa-go: # gestion of users, password reset and invitations links
+    image: hrfee/jfa-go
+    container_name: jfa-go
+    restart: always
+    environment:
+      - TZ=Europe/London
+      - PGID=1000
+      - PUID=1000
+    ports:
+      - 8056:8056
+    volumes:
+      - ./jfa-go:/data
+      - ~/Documents/jellyfin:/jf
+      - /etc/localtime:/etc/localtime:ro
     depends_on:
       - jellyfin
 
-  radarr:
+  radarr: # management of movies, requests etc
     image: linuxserver/radarr:latest
     container_name: radarr
     restart: always
@@ -78,7 +91,7 @@ services:
       - ./radarr:/config
       - ../media:/library
 
-  sonarr:
+  sonarr: # management of series, requests etc
     image: linuxserver/sonarr:latest
     container_name: sonarr
     restart: always
@@ -92,21 +105,21 @@ services:
       - ./sonarr:/config
       - ../media:/library
 
-  lidarr:
-    image: linuxserver/lidarr
-    container_name: lidarr
-    restart: always
-    ports:
-      - "8686:8686"
-    environment:
-      - PGID=1000
-      - PUID=1000
-      - TZ=Europe/London
-    volumes:
-      - ./lidarr:/config
-      - ../media:/library
+  # lidarr: # management of music, requests etc
+  #   image: linuxserver/lidarr
+  #   container_name: lidarr
+  #   restart: always
+  #   ports:
+  #     - "8686:8686"
+  #   environment:
+  #     - PGID=1000
+  #     - PUID=1000
+  #     - TZ=Europe/London
+  #   volumes:
+  #     - ./lidarr:/config
+  #     - ../media:/library
     
-  prowlarr:
+  prowlarr: # indexer manager (for radarr, sonarr, lidarr, etc)
     image: linuxserver/prowlarr:latest
     container_name: prowlarr
     restart: always
@@ -122,7 +135,7 @@ services:
       - ./prowlarr:/config
       - watching:/downloads  # transmission watch directory
     
-  jackett:
+  jackett: # second indexer manager (for radarr, sonarr, lidarr, etc)
     image: linuxserver/jackett:latest
     container_name: jackett
     restart: always
@@ -136,9 +149,8 @@ services:
       - ./jackett:/config
       - watching:/downloads # transmission watch directory
   
-  flaresolverr:
+  flaresolverr: # captcha solver for cloudflare (needed to bypass restrictions on some torrent sites like ygg)
     # image: flaresolverr/flaresolverr:latest
-    # image: ghcr.io/flaresolverr/flaresolverr:pr-1282
     image: alexfozor/flaresolverr:pr-1300-experimental
     container_name: flaresolverr
     restart: unless-stopped
@@ -148,11 +160,11 @@ services:
       - TZ=Europe/London
       - DRIVER=nodriver
 
-  transmission:
+  transmission: # torrent client
     image: linuxserver/transmission:latest
     container_name: transmission
     restart: always
-    # ports:
+    # ports: # port not exported here because we are networking it to vpn-router
     #   - "9091:9091"
     environment:
       - PGID=1000
@@ -166,12 +178,12 @@ services:
       - watching:/watch
     cap_add:
       - NET_ADMIN
-    network_mode: service:protonwire
+    network_mode: service:vpn-router # forward all traffic to vpn-router
     depends_on:
-      - protonwire
+      - vpn-router
 
-  protonwire:
-    container_name: protonwire
+  vpn-router: # vpn client to hide our ass
+    container_name: vpn-router
     image: dperson/openvpn-client
     cap_add:
       - net_admin
@@ -187,15 +199,24 @@ services:
     volumes:
       - ./vpn/reaster-ovpn.ovpn:/vpn/vpn.conf:ro
       - ./vpn/credentials.txt:/vpn/credentials.txt:ro
+    healthcheck:
+      test: ["CMD", "curl", "ip.me"]
+      interval: 30s
+      timeout: 10s
+      retries: 2
+      start_period: 60s
 
-  watchtower:
+  watchtower: # optional, auto-update of containers
     image: containrrr/watchtower
     container_name: watchtower
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 30
+    environment:
+      WATCHTOWER_SCHEDULE: 0 4 * * * *
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_DEBUG: "true"
   
 volumes:
-  watching:
+  watching: # the local volume needed for the link radarr/sonarr -> transmission
     driver: local
